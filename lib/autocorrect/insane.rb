@@ -1,7 +1,7 @@
 require 'autocorrect/common'
 
 module Autocorrect
-  module Whiny
+  module Insane
     include Autocorrect::Common
 
     def method_missing(method, *args, &block)
@@ -9,7 +9,8 @@ module Autocorrect
       if method == :to_ary || method == :to_str
         super
       elsif guessed_method = guess_callable_method_for(method, args.length)
-        raise_method_missing_warning_for guessed_method, method, args, caller
+        method_missing_warning_for guessed_method, method, args
+        send guessed_method, *args, &block
       elsif guessed_method = guess_closest_matched_name_method_for(method)
         raise_method_missing_with_mismatched_args_warning_for guessed_method, method, args, caller
       else
@@ -18,13 +19,13 @@ module Autocorrect
     end
 
     private
-    def raise_method_missing_warning_for(guessed_method, called_method, args, with_caller = nil)
+    def method_missing_warning_for(guessed_method, called_method, args)
       message = "You have called a method that doesn't exist.\n"
       message << "You tried to call '#{print_method_with_args(called_method, args)}'.\n"
-      message << "We suspect you meant '#{print_method_with_args(guessed_method, args)}'.\n"
-      raise NoMethodError, message, with_caller || caller
+      message << "We suspect you meant '#{print_method_with_args(guessed_method, args)}' and so we're calling it on your behalf."
+      STDERR.puts message
     end
   end
 end
 
-Object.send :include, Autocorrect::Whiny
+Object.send :include, Autocorrect::Insane
